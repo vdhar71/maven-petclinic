@@ -24,6 +24,8 @@ pipeline {
         // failed, record the test results and archive the jar file.
         success {
           archiveArtifacts 'target/*.jar'
+          // Build Docker image for the petclinic come the jar
+          docker build -t vdhar:petclinic .
         }
       }
     }
