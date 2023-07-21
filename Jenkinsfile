@@ -25,7 +25,7 @@ pipeline {
         success {
           archiveArtifacts 'target/*.jar'
           // Build Docker image for the petclinic come the jar
-          docker build -t vdhar:petclinic .
+          sh "docker build -t vdhar:petclinic ."
         }
       }
     }
