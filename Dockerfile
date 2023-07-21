@@ -1,4 +1,12 @@
-FROM openjdk:8
+FROM openjdk:17
 EXPOSE 8080
-ADD target/spring-petclinic-3.1.0-SNAPSHOT.jar spring-petclinic-3.1.0-SNAPSHOT.jar
-ENTRYPOINT ["java", "-jar", "/spring-petclinic-3.1.0-SNAPSHOT.jar"]
+
+WORKDIR /app
+
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+RUN ./mvnw dependency:resolve
+
+COPY src ./src
+
+CMD ["./mvnw", "spring-boot:run"]
