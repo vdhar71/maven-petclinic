@@ -443,5 +443,18 @@
       </build>
     </profile>
   </profiles>
-
+  
+<!-- JFrog Distribution Management Configuration-->
+<distributionManagement>
+    <repository>
+        <id>central</id>
+        <name>a0xtumqdfwjig-artifactory-primary-0-releases</name>
+        <url>https://rayans.jfrog.io/artifactory/petco</url>
+    </repository>
+    <snapshotRepository>
+        <id>snapshots</id>
+        <name>a0xtumqdfwjig-artifactory-primary-0-snapshots</name>
+        <url>https://rayans.jfrog.io/artifactory/petco</url>
+    </snapshotRepository>
+</distributionManagement>
 </project>
