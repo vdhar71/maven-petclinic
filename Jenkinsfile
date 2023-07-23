@@ -4,9 +4,21 @@ pipeline {
         jfrog 'jfrog-cli'
     }
  
+    environment {
+        dockerCredentials = 'dockerhub'
+        PATH='/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin'
+    }
+
     stages {
         stage('Build') {
             steps {
+		// Login to Docker to enable trivy to download the DB.
+		sh 'echo $PATH'
+                sh 'env'
+                // Docker login to use trivy
+                withCredentials([usernamePassword(credentialsId: dockerCredentials, passwordVariable: 'password', usernameVariable: 'username')]) {
+                        sh '/usr/local/bin/docker login -u $username -p $password'
+                }
                 // Trivy scan before git checkout
                 sh '/opt/homebrew/bin/trivy repo https://github.com/vdhar71/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
                 
