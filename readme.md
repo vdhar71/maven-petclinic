@@ -56,11 +56,23 @@ pipeline {
         jfrog 'jfrog-cli'
     }
  
+    environment {
+        dockerCredentials = 'dockerhub'
+        PATH='/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin'
+    }
+
     stages {
         stage('Build') {
             steps {
+		// Login to Docker to enable trivy to download the DB.
+		sh 'echo $PATH'
+                sh 'env'
+                // Docker login to use trivy
+                withCredentials([usernamePassword(credentialsId: dockerCredentials, passwordVariable: 'password', usernameVariable: 'username')]) {
+                        sh '/usr/local/bin/docker login -u $username -p $password'
+                }
                 // Trivy scan before git checkout
-                sh '/opt/homebrew/bin/trivy repo https://github.com/<repo>/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
+                sh '/opt/homebrew/bin/trivy repo https://github.com/vdhar71/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
                 
                 // Get some code from a GitHub repository
                 checkout scmGit(branches: [
@@ -68,7 +80,7 @@ pipeline {
                     ], 
                     extensions: [cleanBeforeCheckout(deleteUntrackedNestedRepositories: true)], 
                     userRemoteConfigs: [
-                        [url: 'https://github.com/<repo>/petclinic']
+                        [url: 'https://github.com/vdhar71/petclinic']
                         ])
                         
                 // Exec Maven commands
@@ -95,17 +107,18 @@ pipeline {
                 success {
                     archiveArtifacts 'target/*.jar'
                     // Build the Docker image from the resulting jar
-                    sh '/usr/local/bin/docker build -t <docker-repo>/petclinic:1.0 .'
+                    sh '/usr/local/bin/docker build -t vdhar/petclinic:1.0 .'
                     
                     // Trivy scan on the final artifact: Docker image
-                    sh '/opt/homebrew/bin/trivy image <docker-repo>/petclinic:1.0 --scanners vuln,secret,config,license --dependency-tree'
+                    sh '/opt/homebrew/bin/trivy image vdhar/petclinic:1.0 --scanners vuln,secret,config,license --dependency-tree'
                     
-                    sh '/usr/local/bin/docker save -o petclinic.tar <docker-repo>/petclinic:1.0'
+                    sh '/usr/local/bin/docker save -o petclinic.tar vdhar/petclinic:1.0'
                     jf 'rt u petclinic.tar repo-local/'
                 }
             }
         }
     }
+}
 ```
 12. Running the spring-petclinic application. Database needs to be up and running before running the spring-petclinic. There is a choice to use either MySQL or Postgres. Here in this example we are using MySQL.
 
