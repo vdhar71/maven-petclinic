@@ -128,6 +128,8 @@ docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PAS
 
 Ensure that the DB is ready to accept connections before executing the following command.
 
-```docker run -d -p 8080:8080 vdhar/petclinic:1.0```
+```
+docker run -d -p 8080:8080 vdhar/petclinic:1.0
+```
 
 Visit [http://localhost:8080](http://localhost:8080) in your browser.
