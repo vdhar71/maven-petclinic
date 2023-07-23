@@ -31,7 +31,7 @@ pipeline {
                 // Trivy scan after app is built
                 sh '/opt/homebrew/bin/trivy fs . --scanners vuln,secret,config,license --dependency-tree'
                 
-                // Publiish the build info.
+                // Publish the build info.
                 jf 'rt bp'
 
                 
