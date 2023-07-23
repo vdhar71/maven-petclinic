@@ -1,6 +1,6 @@
-# Spring PetClinic Sample Application [![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml)
+# Vidyadhar version of Spring PetClinic Sample Application [![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml)
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/spring-projects/spring-petclinic) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=7517918)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/spring-projects/spring-petclinic) [![Open in GitHub Workspaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=7517918)
 
 
 
@@ -9,74 +9,115 @@
 <a href="https://speakerdeck.com/michaelisvy/spring-petclinic-sample-application">See the presentation here</a>
 
 ## Running petclinic locally
-Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/) or [Gradle](https://spring.io/guides/gs/gradle/). You can build a jar file and run it from the command line (it should work just as well with Java 17 or newer):
+Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/) or [Gradle](https://spring.io/guides/gs/gradle/). You can build a Docker image file and run it from the command line (it should work just as well with Java 17 or newer):
 
+The process of creating the Docker image from the source files is completely automated. The source code is pushed to the GitHub, then  picked up by the Jenkins pipeline via webhook notification. Jenkins then builds the artifacts and at the end creates a Docker image of the spring-petclinic application. Here is the flow:
+Source code from local repo -> GitHub -> Jenkins pipeline -> Docker image
+
+-----------------------------------------------------------------------------------------------------------------------
+NOTE: The entire project was created on 2021 MacBook Pro M1 Chip Pro, 32GB RAM and 1TB storage
+-----------------------------------------------------------------------------------------------------------------------
+
+
+Following are the steps outlined of the entire process:
+
+1. Getting the spring-petclinic and pushing it to your own Git repo.
 
 ```
 git clone https://github.com/spring-projects/spring-petclinic.git
-cd spring-petclinic
-./mvnw package
-java -jar target/*.jar
+git init
+git remote add origin https://github.com/<git-repo>/petclinic.git #New remote repo
+git branch -M main #setting main 
+git push -u origin main
+git remote -v
+
+```
+2. Install Jenkins:
+``` brew install jenkins-lts```
+Edit the file ```/opt/homebrew/Cellar/jenkins-lts/2.401.2/homebrew.mxcl.jenkins-lts.plist``` and replace the line reading
+```--httpPort=8080``` to ```--httpPort=8090``` This is to avoid conflict as the application runs on port 8080.
+3. Start jenkins using ```brew services start jenkins-lts```. Now you will be able to access jenkins from the browser using ```https://localhost:8090```.
+4. Install the following plugins from the Manage Jenkins -> Plugins:
+JFrog
+Docker
+Maven
+Git
+5. In order to initiate automated builds upon source code push to the main, jenkins needs to be available over internet. So install ngrok and run ```ngrok http 8090```. This is enable jenkins to be accessible over the internet.
+6. On Git, configure webhook for the project under settings. Specify ```<ngrok-name/github-webhook/>``` and relevant permissions, example: push
+7. Create JFrog cloud account (free trial) and a Maven project. This will automatically create default local, remote and virtual repositories. This will be used to resolve Maven dependencies.
+8. Select Maven repo and ```Generate Token & create instructions``` using "Set Me Up". Follow the instructions and create "settings.xml". Copy the XML code from "Deploy" section and update the pom.xml
+9. Next update settings.xml with Maven Artifactory plugin. You can refer: ```https://jfrog.com/help/r/jfrog-integrations-documentation/maven-artifactory-plugin```
+10. Install "trivy" from Aqua Security For vulnerability scanning. Trivy is OSS and a very popular scanner.
+11. Create a jenkins pipeline:
+```pipeline {
+    agent any
+    tools {
+        jfrog 'jfrog-cli'
+    }
+ 
+    stages {
+        stage('Build') {
+            steps {
+                // Trivy scan before git checkout
+                sh '/opt/homebrew/bin/trivy repo https://github.com/<repo>/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
+                
+                // Get some code from a GitHub repository
+                checkout scmGit(branches: [
+                    [name: '*/main']
+                    ], 
+                    extensions: [cleanBeforeCheckout(deleteUntrackedNestedRepositories: true)], 
+                    userRemoteConfigs: [
+                        [url: 'https://github.com/<repo>/petclinic']
+                        ])
+                        
+                // Exec Maven commands
+                jf '-v'
+                jf 'c show'
+                jf 'mvn-config --repo-resolve-releases libs-release --repo-resolve-snapshots libs-snapshots --repo-deploy-releases libs-release-local --repo-deploy-snapshots libs-snapshot-local'
+                // Check whether dependencies are pulled from JFrog Artifactory
+                sh './mvnw -s settings.xml dependency:list'
+                // Build petclinic app
+                sh './mvnw -s settings.xml package'
+                
+                // Trivy scan after app is built
+                sh '/opt/homebrew/bin/trivy fs . --scanners vuln,secret,config,license --dependency-tree'
+                
+                // Publish the build info.
+                jf 'rt bp'
+
+                
+            }
+
+            post {
+                // If Maven was able to run the tests, even if some of the test
+                // failed, record the test results and archive the jar file.
+                success {
+                    archiveArtifacts 'target/*.jar'
+                    // Build the Docker image from the resulting jar
+                    sh '/usr/local/bin/docker build -t <docker-repo>/petclinic:1.0 .'
+                    
+                    // Trivy scan on the final artifact: Docker image
+                    sh '/opt/homebrew/bin/trivy image <docker-repo>/petclinic:1.0 --scanners vuln,secret,config,license --dependency-tree'
+                    
+                    sh '/usr/local/bin/docker save -o petclinic.tar <docker-repo>/petclinic:1.0'
+                    jf 'rt u petclinic.tar repo-local/'
+                }
+            }
+        }
+    }```
+12. **Running the spring-petclinic application**. Database needs to be up and running before running the spring-petclinic. There is a choice to use either MySQL or Postgres. Here in this example we are using MySQL.
+```
+docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:8.0
+```
+Ensure that the DB is ready to accept connections before executing the following command.
+
+```
+docker run -d -p 8080:8080 vdhar/petclinic:1.0
 ```
 
 You can then access petclinic at http://localhost:8080/
 
-<img width="1042" alt="petclinic-screenshot" src="https://cloud.githubusercontent.com/assets/838318/19727082/2aee6d6c-9b8e-11e6-81fe-e889a5ddfded.png">
 
-Or you can run it from Maven directly using the Spring Boot Maven plugin. If you do this, it will pick up changes that you make in the project immediately (changes to Java source files require a compile as well - most people use an IDE for this):
-
-```
-./mvnw spring-boot:run
-```
-
-> NOTE: If you prefer to use Gradle, you can build the app using `./gradlew build` and look for the jar file in `build/libs`.
-
-## Building a Container
-
-There is no `Dockerfile` in this project. You can build a container image (if you have a docker daemon) using the Spring Boot build plugin:
-
-```
-./mvnw spring-boot:build-image
-```
-
-## In case you find a bug/suggested improvement for Spring Petclinic
-Our issue tracker is available [here](https://github.com/spring-projects/spring-petclinic/issues)
-
-
-## Database configuration
-
-In its default configuration, Petclinic uses an in-memory database (H2) which
-gets populated at startup with data. The h2 console is exposed at `http://localhost:8080/h2-console`,
-and it is possible to inspect the content of the database using the `jdbc:h2:mem:testdb` url.
- 
-A similar setup is provided for MySQL and PostgreSQL if a persistent database configuration is needed. Note that whenever the database type changes, the app needs to run with a different profile: `spring.profiles.active=mysql` for MySQL or `spring.profiles.active=postgres` for PostgreSQL.
-
-You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
-
-```
-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:8.0
-```
-
-or
-
-```
-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:15.2
-```
-
-Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
-and for [PostgreSQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/postgres/petclinic_db_setup_postgres.txt).
-
-Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database containers. Each one has a profile just like the Spring profile:
-
-```
-$ docker-compose --profile mysql up
-```
-
-or
-
-```
-$ docker-compose --profile postgres up
-```
 
 ## Test Applications
 
