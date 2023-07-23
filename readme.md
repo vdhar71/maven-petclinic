@@ -15,7 +15,8 @@ The process of creating the Docker image from the source files is completely aut
 Source code from local repo -> GitHub -> Jenkins pipeline -> Docker image
 
 -----------------------------------------------------------------------------------------------------------------------
-NOTE: The entire project was created on 2021 MacBook Pro M1 Chip Pro, 32GB RAM and 1TB storage
+NOTE: The entire project was created on 2021 MacBook Pro M1 Chip Pro, 32GB RAM and 1TB storage 
+running macOS Ventura 13.5
 -----------------------------------------------------------------------------------------------------------------------
 
 
@@ -26,7 +27,7 @@ Following are the steps outlined of the entire process:
 ```
 git clone https://github.com/spring-projects/spring-petclinic.git
 git init
-git remote add origin https://github.com/<git-repo>/petclinic.git #New remote repo
+git remote add origin https://github.com/<git-repo>/petclinic.git
 git branch -M main #setting main 
 git push -u origin main
 git remote -v
@@ -35,7 +36,7 @@ git remote -v
 2. Install Jenkins:
 ``` brew install jenkins-lts```
 Edit the file ```/opt/homebrew/Cellar/jenkins-lts/2.401.2/homebrew.mxcl.jenkins-lts.plist``` and replace the line reading
-```--httpPort=8080``` to ```--httpPort=8090``` This is to avoid conflict as the application runs on port 8080.
+```--httpPort=8080``` to ```--httpPort=8090``` This is to avoid conflict as the application also runs on port 8080.
 3. Start jenkins using ```brew services start jenkins-lts```. Now you will be able to access jenkins from the browser using ```https://localhost:8090```.
 4. Install the following plugins from the Manage Jenkins -> Plugins:
 JFrog
