@@ -22,7 +22,7 @@ pipeline {
                 // Trivy scan before git checkout
                 sh '/opt/homebrew/bin/trivy repo https://github.com/vdhar71/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
                 
-                // Get some code from a GitHub repository
+                // Checkout spring-petclinic code from the GitHub repository
                 checkout scmGit(branches: [
                     [name: '*/main']
                     ], 
@@ -31,7 +31,7 @@ pipeline {
                         [url: 'https://github.com/vdhar71/petclinic']
                         ])
                         
-                // Exec Maven commands
+                // Exec JF & Maven commands and build the app
                 jf '-v'
                 jf 'c show'
                 jf 'mvn-config --repo-resolve-releases libs-release --repo-resolve-snapshots libs-snapshots --repo-deploy-releases libs-release-local --repo-deploy-snapshots libs-snapshot-local'
