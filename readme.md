@@ -47,7 +47,7 @@ Git
 6. On Git, configure webhook for the project under settings. Specify ```<ngrok-name/github-webhook/>``` and relevant permissions, example: push
 7. Create JFrog cloud account (free trial) and a Maven project. This will automatically create default local, remote and virtual repositories. This will be used to resolve Maven dependencies.
 8. Select Maven repo and ```Generate Token & create instructions``` using "Set Me Up". Follow the instructions and create "settings.xml". Copy the XML code from "Deploy" section and update the pom.xml
-9. Next update settings.xml with Maven Artifactory plugin. You can refer: ```https://jfrog.com/help/r/jfrog-integrations-documentation/maven-artifactory-plugin```
+9. Next update pom.xml with Maven Artifactory plugin. You can refer: ```https://jfrog.com/help/r/jfrog-integrations-documentation/maven-artifactory-plugin```
 10. Install "trivy" from Aqua Security For vulnerability scanning. Trivy is OSS and a very popular scanner.
 11. Create a jenkins pipeline:
 ```
