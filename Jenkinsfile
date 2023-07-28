@@ -20,7 +20,7 @@ pipeline {
                         sh '/usr/local/bin/docker login -u $username -p $password'
                 }
                 // Trivy scan before git checkout
-                sh '/opt/homebrew/bin/trivy repo https://github.com/vdhar71/petclinic.git --scanners vuln,secret,config,license --dependency-tree'
+                sh '/opt/homebrew/bin/trivy repo https://github.com/vdhar71/maven-petclinic.git --scanners vuln,secret,config,license --dependency-tree'
                 
                 // Checkout spring-petclinic code from the GitHub repository
                 checkout scmGit(branches: [
@@ -28,7 +28,7 @@ pipeline {
                     ], 
                     extensions: [cleanBeforeCheckout(deleteUntrackedNestedRepositories: true)], 
                     userRemoteConfigs: [
-                        [url: 'https://github.com/vdhar71/petclinic']
+                        [url: 'https://github.com/vdhar71/maven-petclinic']
                         ])
                         
                 // Exec JF & Maven commands and build the app
@@ -54,16 +54,16 @@ pipeline {
                     jf 'rt bp'
 
                     // Build the Docker image from the resulting jar
-                    sh '/usr/local/bin/docker build -t vdhar/petclinic:1.0 .'
+                    sh '/usr/local/bin/docker build -t vdhar/maven-petclinic:1.0 .'
                     
                     // Trivy scan on the final artifact: Docker image
-                    sh '/opt/homebrew/bin/trivy image vdhar/petclinic:1.0 --scanners vuln,secret,config,license --dependency-tree'
+                    sh '/opt/homebrew/bin/trivy image vdhar/maven-petclinic:1.0 --scanners vuln,secret,config,license --dependency-tree'
                     
                     // Push the image to Docker Hub 
-                    sh 'docker push vdhar/petclinic:1.0'
+                    sh 'docker push vdhar/maven-petclinic:1.0'
                     
-                    sh '/usr/local/bin/docker save -o petclinic.tar vdhar/petclinic:1.0'
-                    jf 'rt u petclinic.tar repo-local/'
+                    sh '/usr/local/bin/docker save -o maven-petclinic.tar vdhar/maven-petclinic:1.0'
+                    jf 'rt u maven-petclinic.tar repo-local/'
                 }
             }
         }
