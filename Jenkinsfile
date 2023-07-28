@@ -1,3 +1,5 @@
+// Maven spring-petclinic project
+
 pipeline {
     agent any
     tools {
