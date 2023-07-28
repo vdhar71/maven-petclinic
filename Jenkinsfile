@@ -54,13 +54,13 @@ pipeline {
                     jf 'rt bp'
 
                     // Build the Docker image from the resulting jar
-                    sh '/usr/local/bin/docker build -t vdhar/petclinic:1.1 .'
+                    sh '/usr/local/bin/docker build -t repo-local/petclinic:1.1 .'
                     
                     // Trivy scan on the final artifact: Docker image
-                    sh '/opt/homebrew/bin/trivy image vdhar/petclinic:1.1 --scanners vuln,secret,config,license --dependency-tree'
+                    //sh '/opt/homebrew/bin/trivy image repo-local/petclinic:1.1 --scanners vuln,secret,config,license --dependency-tree'
                     
-                    // Push the image to Docker Hub 
-                    sh 'docker push vdhar/petclinic:1.1'
+                    // Push the image to JFrog Artifactory repo
+                    sh 'docker push repo-local/petclinic:1.1'
                     
                     //sh '/usr/local/bin/docker save -o petclinic.tar vdhar/petclinic:1'
                     //jf 'rt u petclinic.tar repo-local/'
